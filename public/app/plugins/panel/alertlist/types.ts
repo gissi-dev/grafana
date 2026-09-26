@@ -14,10 +14,21 @@ export enum GroupMode {
   Custom = 'custom',
 }
 
+/** How custom grouping lays out rules relative to label groups. */
+export enum CustomGroupLayout {
+  /** One row per alert rule, then subgroups by the chosen labels. */
+  ByRule = 'byRule',
+  /** One row per label tuple across rules (legacy custom grouping). */
+  Flat = 'flat',
+}
+
 export enum ViewMode {
   List = 'list',
   Stat = 'stat',
 }
+
+/** Max number of label keys a user can pin for instance display. */
+export const PRIORITY_LABELS_MAX = 3;
 
 export interface StateFilter {
   firing: boolean;
@@ -35,8 +46,15 @@ export interface UnifiedAlertListOptions {
   dashboardAlerts: boolean;
   groupMode: GroupMode;
   groupBy: string[];
+  /** Layout for custom grouping; ignored when groupMode is default. */
+  customGroupLayout: CustomGroupLayout;
   alertName: string;
   showInstances: boolean;
+  /**
+   * Label keys to show first on each instance. Remaining labels collapse behind
+   * "+ N other labels". Empty keeps the default label display.
+   */
+  priorityLabels: string[];
   folder: { uid: string; title: string };
   stateFilter: StateFilter;
   alertInstanceLabelFilter: string;

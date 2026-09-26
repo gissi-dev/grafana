@@ -12,7 +12,15 @@ import {
 
 import { GroupBy } from './GroupByWithLoading';
 import { UnifiedAlertListPanel } from './UnifiedAlertList';
-import { GroupMode, SortOrder, STAT_THRESHOLDS_DEFAULT, type UnifiedAlertListOptions, ViewMode } from './types';
+import {
+  CustomGroupLayout,
+  GroupMode,
+  PRIORITY_LABELS_MAX,
+  SortOrder,
+  STAT_THRESHOLDS_DEFAULT,
+  type UnifiedAlertListOptions,
+  ViewMode,
+} from './types';
 
 const unifiedAlertList = new PanelPlugin<UnifiedAlertListOptions>(UnifiedAlertListPanel)
   .setPanelOptions((builder) => {
@@ -67,6 +75,66 @@ const unifiedAlertList = new PanelPlugin<UnifiedAlertListOptions>(UnifiedAlertLi
               defaultValue={props.value.map((value: string) => ({ label: value, value }))}
               onChange={props.onChange}
               dataSource={props.context.options.datasource}
+            />
+          );
+        },
+      })
+      .addRadio({
+        path: 'customGroupLayout',
+        name: t('alertlist.name-custom-group-layout', 'Custom group layout'),
+        description: t(
+          'alertlist.description-custom-group-layout',
+          'Keep each alert rule as its own row, or flatten instances across rules by label'
+        ),
+        defaultValue: CustomGroupLayout.ByRule,
+        showIf: (options) => options.groupMode === GroupMode.Custom && options.viewMode === ViewMode.List,
+        settings: {
+          options: [
+            {
+              value: CustomGroupLayout.ByRule,
+              label: t('alertlist.custom-group-layout-options.label-by-rule', 'Group within each rule'),
+            },
+            {
+              value: CustomGroupLayout.Flat,
+              label: t('alertlist.custom-group-layout-options.label-flat', 'Flat list across rules'),
+            },
+          ],
+        },
+        category: optionsCategory,
+      })
+      .addBooleanSwitch({
+        path: 'showInstances',
+        name: t('alertlist.name-expand-alert-instances', 'Expand alert instances'),
+        description: t(
+          'alertlist.description-expand-alert-instances',
+          'Show the instance table expanded by default under each group'
+        ),
+        defaultValue: false,
+        showIf: (options) => options.viewMode === ViewMode.List,
+        category: optionsCategory,
+      })
+      .addCustomEditor({
+        path: 'priorityLabels',
+        name: t('alertlist.name-priority-labels', 'Priority labels'),
+        description: t(
+          'alertlist.description-priority-labels',
+          'Up to 3 label keys to show first on each instance; other labels collapse behind a count'
+        ),
+        id: 'priorityLabels',
+        defaultValue: [],
+        showIf: (options) => options.viewMode === ViewMode.List,
+        category: optionsCategory,
+        editor: (props) => {
+          const value = (props.value ?? []).slice(0, PRIORITY_LABELS_MAX);
+          return (
+            <GroupBy
+              id={props.id ?? 'priorityLabels'}
+              defaultValue={value.map((key: string) => ({ label: key, value: key }))}
+              onChange={props.onChange}
+              dataSource={props.context.options.datasource}
+              maxItems={PRIORITY_LABELS_MAX}
+              placeholder={t('alertlist.priority-labels.placeholder', 'Pin label keys')}
+              aria-label={t('alertlist.priority-labels.aria-label', 'priority label keys')}
             />
           );
         },
@@ -298,6 +366,12 @@ const unifiedAlertList = new PanelPlugin<UnifiedAlertListOptions>(UnifiedAlertLi
     }
     if (!panel.options.statValueMappings) {
       panel.options.statValueMappings = [];
+    }
+    if (!panel.options.customGroupLayout) {
+      panel.options.customGroupLayout = CustomGroupLayout.ByRule;
+    }
+    if (!panel.options.priorityLabels) {
+      panel.options.priorityLabels = [];
     }
 
     return panel.options;
