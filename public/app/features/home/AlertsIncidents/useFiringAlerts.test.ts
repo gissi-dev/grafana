@@ -170,11 +170,22 @@ describe('useFiringAlerts', () => {
       const requests = captureAlertFilters();
 
       // Dropdown values are real label values; '.' must be escaped, not treated as a wildcard.
+      // A bare name is the legacy storage form and still matches the `team` label.
       const { result } = renderHook(() => useFiringAlerts('team.one'), { wrapper: getWrapper({}) });
       await waitFor(() => expect(result.current.loading).toBe(false));
 
       // escapeRegExp adds '\\.', quoteWithEscape doubles the backslash on the wire.
       expect(requests).toEqual([['team=~"team\\\\.one"']]);
+    });
+
+    it('matches an encoded squad selection on the squad label, not team', async () => {
+      mockTeams([{ name: 'Platform Monitoring' }]);
+      const requests = captureAlertFilters();
+
+      const { result } = renderHook(() => useFiringAlerts('squad:frontend'), { wrapper: getWrapper({}) });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      expect(requests).toEqual([['squad=~"frontend"']]);
     });
   });
 });

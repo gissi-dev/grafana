@@ -23,11 +23,11 @@ function alertSeverityLevel(alert: AlertmanagerAlert) {
   return canonicalSeverity(alert.labels.severity ?? '');
 }
 
-function buildTeamMatchers(teamValues: string[]) {
-  if (teamValues.length === 0) {
+function buildExactMatcher(name: string, values: string[]) {
+  if (values.length === 0) {
     return [];
   }
-  return [{ name: 'team', value: teamValues.map(escapeRegExp).join('|'), isRegex: true, isEqual: true }];
+  return [{ name, value: values.map(escapeRegExp).join('|'), isRegex: true, isEqual: true }];
 }
 
 // Any run of separator characters between or around the name's letter/digit runs.
@@ -58,21 +58,22 @@ function buildTolerantTeamMatchers(teamNames: string[]) {
 }
 
 /**
- * Which team matchers to send for the current dropdown selection:
- * an explicit "All teams" pick means no filter at all, a specific team wins next,
- * and with no selection we fall back to the user's own teams when they have any.
+ * Which matchers to send for the current dropdown selection:
+ * an explicit "all" pick means no filter at all, a specific ownership label wins next,
+ * and with no selection we fall back to the user's own teams on the `team` label.
  */
 function resolveTeamMatchers(selectedTeam: TeamSelection, userTeamNames: string[]) {
   const scope = resolveTeamScope(selectedTeam);
   switch (scope.kind) {
     case 'all':
       return [];
-    case 'team':
-      // Dropdown selections are real `team` label values, so they're matched exactly.
-      return buildTeamMatchers([scope.team]);
+    case 'label':
+      // Dropdown selections are real label values, so they're matched exactly.
+      return buildExactMatcher(scope.key, [scope.value]);
     case 'default':
       // The `team` alert label is free-form — typically some slugged or re-cased variant
       // of the Grafana team name — so the own-teams default matches tolerantly.
+      // Squad and owner are not inferred from Grafana team membership.
       return buildTolerantTeamMatchers(userTeamNames);
   }
 }
@@ -86,7 +87,7 @@ export type FiringAlertsData = ReturnType<typeof useFiringAlerts>;
  * All data fetching and derived state for the homepage Firing alerts view,
  * shared between the old-layout card and the redesigned tabs.
  *
- * When `selectedTeam` is set (from the team dropdown) it overrides the default
+ * When `selectedTeam` is set (from the ownership dropdown) it overrides the default
  * filter of the user's own teams.
  */
 export function useFiringAlerts(selectedTeam: TeamSelection = '') {

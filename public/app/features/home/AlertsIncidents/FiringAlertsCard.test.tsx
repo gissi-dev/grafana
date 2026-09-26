@@ -76,8 +76,8 @@ afterEach(() => {
   config.appSubUrl = '';
 });
 
-function FiringAlertsCardWithData() {
-  const data = useFiringAlerts();
+function FiringAlertsCardWithData({ selection = '' }: { selection?: string }) {
+  const data = useFiringAlerts(selection);
   return data.enabled ? <FiringAlertsCard data={data} /> : null;
 }
 
@@ -215,6 +215,16 @@ describe('FiringAlertsCard', () => {
 
     expect(await screen.findByText('No firing alerts for your teams.')).toBeInTheDocument();
     expect(screen.queryByText('Show all firing alerts')).not.toBeInTheDocument();
+  });
+
+  it('names a non-team ownership value in the empty state', async () => {
+    mockTeams([{ name: 'platform' }]);
+    mockAlerts([]);
+
+    render(<FiringAlertsCardWithData selection="squad:frontend" />);
+
+    expect(await screen.findByText('No firing alerts for frontend.')).toBeInTheDocument();
+    expect(screen.queryByText('No firing alerts for your teams.')).not.toBeInTheDocument();
   });
 
   it('shows generic empty state when user has no teams', async () => {

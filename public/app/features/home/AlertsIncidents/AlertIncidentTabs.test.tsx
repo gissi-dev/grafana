@@ -92,13 +92,17 @@ function mockTeams(teams: Array<{ name: string }>) {
   );
 }
 
-/** `team` label values the dropdown fetches from the state-history Prometheus datasource. */
-function mockTeamLabelValues(values: string[]) {
-  // Cleared so per-test call-count assertions aren't polluted by earlier tests.
+/** Ownership label values the dropdown fetches. Unlisted keys resolve to an empty list. */
+function mockOwnershipLabelValues(valuesByKey: Record<string, string[]>) {
   jest
     .mocked(fetchTagValues)
     .mockClear()
-    .mockResolvedValue(values.map((value) => ({ text: value, value })));
+    .mockImplementation(async (_range, key) => (valuesByKey[key] ?? []).map((value) => ({ text: value, value })));
+}
+
+/** `team` label values only, so the dropdown stays a single ungrouped team list. */
+function mockTeamLabelValues(values: string[]) {
+  mockOwnershipLabelValues({ team: values });
 }
 
 /** Mocks the alertmanager alerts endpoint; returns the `filter` query params of each request received. */
@@ -446,7 +450,11 @@ describe('AlertIncidentTabs', () => {
       await user.click(screen.getByRole('tab', { name: /firing alerts/i }));
 
       expect(await screen.findByRole('combobox', { name: /filter alerts by team/i })).toBeInTheDocument();
-      expect(fetchTagValues).toHaveBeenCalledTimes(1);
+      // One fetch per ownership key, still once per key across the tab switch.
+      expect(fetchTagValues).toHaveBeenCalledTimes(3);
+      expect(fetchTagValues).toHaveBeenCalledWith(expect.anything(), 'team');
+      expect(fetchTagValues).toHaveBeenCalledWith(expect.anything(), 'squad');
+      expect(fetchTagValues).toHaveBeenCalledWith(expect.anything(), 'owner');
     });
 
     it('puts each tab team filter inside the panel named after that tab', async () => {
@@ -753,6 +761,36 @@ describe('AlertIncidentTabs', () => {
 
       expect(await screen.findByText('CPU Critical')).toBeInTheDocument();
       expect(screen.queryByRole('combobox', { name: /filter alerts by team/i })).not.toBeInTheDocument();
+    });
+
+    it('groups team and squad values and filters alerts by the picked squad', async () => {
+      mockTeams([{ name: 'Team A' }]);
+      mockOwnershipLabelValues({ team: ['Platform'], squad: ['Backend', 'Frontend'] });
+      const requests = mockAlerts([makeAlert({ labels: { alertname: 'CPU Critical', severity: 'critical' } })]);
+
+      const { user } = render(<AlertIncidentTabsWithData />);
+
+      expect(await screen.findByText('CPU Critical')).toBeInTheDocument();
+      const combobox = await screen.findByRole('combobox', { name: /filter alerts by owner/i });
+      await user.click(combobox);
+
+      const options = await screen.findAllByRole('option');
+      expect(options.map((option) => option.textContent)).toEqual([
+        'Your teams',
+        'All alerts',
+        'Backend',
+        'Frontend',
+        'Platform',
+      ]);
+      expect(screen.getAllByTestId('combobox-option-group').map((header) => header.textContent)).toEqual([
+        'squad',
+        'team',
+      ]);
+      await user.click(screen.getByRole('option', { name: 'Frontend' }));
+
+      await waitFor(() => expect(requests).toHaveLength(2));
+      expect(requests[1]).toEqual(['squad=~"Frontend"']);
+      expect(combobox).toHaveDisplayValue('Frontend');
     });
 
     it('sends a slug-style label value as-is and names it in the empty message', async () => {
