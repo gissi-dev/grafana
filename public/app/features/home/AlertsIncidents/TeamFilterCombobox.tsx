@@ -41,11 +41,11 @@ interface Props {
    * option already means everything.
    */
   offersYourTeams: boolean;
-  /** Label of the unfiltered option, e.g. "All teams" or "All incidents". */
+  /** Label of the unfiltered option, e.g. "All alerts" or "All incidents". */
   allOptionLabel: string;
   /**
-   * How to display a picked option value when it isn't its own label: alerts store the
-   * team name itself, incidents store an encoded `slug:value`.
+   * How to display a picked option value when it isn't its own label: both tabs store
+   * an encoded `key:value` (alerts: label name, incidents: field slug).
    */
   selectionLabel?: (selection: string) => string;
   ariaLabel: string;
@@ -53,7 +53,7 @@ interface Props {
 
 /**
  * Dropdown to filter a homepage view. Presentational: the caller supplies the options
- * (alert team label values or incident label values) and owns the selection.
+ * (alert label values or incident label values) and owns the selection.
  */
 export function TeamFilterCombobox({
   options,
@@ -80,9 +80,9 @@ export function TeamFilterCombobox({
     switch (scope.kind) {
       case 'all':
         return allOption;
-      case 'team':
+      case 'label':
         // Built from the selection alone, so a pick whose option is gone (e.g. archived) still shows.
-        return { label: selectionLabel?.(scope.team) ?? scope.team, value: scope.team };
+        return { label: selectionLabel?.(selected) ?? scope.value, value: selected };
       case 'default':
         // Without a "your teams" scope the default already means everything, so show that.
         return offersYourTeams ? getYourTeamsOption() : allOption;

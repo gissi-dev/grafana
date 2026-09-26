@@ -29,7 +29,7 @@ const FILTERS_PROMOTED: MetricFindValue[] = [
 ];
 
 /** Labels that should never appear in dropdowns */
-const EXCLUDED = new Set<string>([
+export const EXCLUDED = new Set<string>([
   '__name__',
   ...Object.values(COMBINED_FILTER_LABEL_KEYS).flatMap((keys) => keys.slice(1)),
 ]);
@@ -41,7 +41,7 @@ const metricQuery: PromQuery = { refId: 'keys', expr: METRIC_NAME };
  * Fetch tag keys from the configured Prometheus datasource,
  * scoped to the GRAFANA_ALERTS metric.
  */
-async function fetchTagKeys(timeRange: TimeRange): Promise<MetricFindValue[]> {
+export async function fetchTagKeys(timeRange: TimeRange): Promise<MetricFindValue[]> {
   const ds = await getDataSourceSrv().get({ uid: DATASOURCE_UID });
 
   if (!ds.getTagKeys) {
