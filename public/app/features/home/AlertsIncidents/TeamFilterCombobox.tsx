@@ -44,8 +44,8 @@ interface Props {
   /** Label of the unfiltered option, e.g. "All teams" or "All incidents". */
   allOptionLabel: string;
   /**
-   * How to display a picked option value when it isn't its own label: alerts store the
-   * team name itself, incidents store an encoded `slug:value`.
+   * How to display a picked option value when it isn't its own label. Alerts and
+   * incidents both store an encoded `key:value`; alerts also accept a legacy bare team name.
    */
   selectionLabel?: (selection: string) => string;
   ariaLabel: string;

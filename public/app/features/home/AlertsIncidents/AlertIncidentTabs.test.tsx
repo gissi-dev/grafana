@@ -55,7 +55,7 @@ jest.mock('app/core/services/context_srv', () => ({
   },
 }));
 
-// The team dropdown loads its options from the `team` label values on alerts,
+// The alerts dropdown loads ownership label values (`team`, `squad`, `owner`)
 // via the triage fetchTagValues helper; mock it rather than the datasource layer.
 jest.mock('app/features/alerting/unified/triage/scene/tagKeysProviders', () => ({
   ...jest.requireActual('app/features/alerting/unified/triage/scene/tagKeysProviders'),
@@ -92,13 +92,19 @@ function mockTeams(teams: Array<{ name: string }>) {
   );
 }
 
-/** `team` label values the dropdown fetches from the state-history Prometheus datasource. */
-function mockTeamLabelValues(values: string[]) {
+/**
+ * Ownership label values the dropdown fetches from the state-history Prometheus datasource.
+ * An array stubs `team` only, so the squad and owner lookups don't duplicate those options.
+ */
+function mockTeamLabelValues(values: string[] | Partial<Record<'team' | 'squad' | 'owner', string[]>>) {
+  const byKey = Array.isArray(values) ? { team: values } : values;
   // Cleared so per-test call-count assertions aren't polluted by earlier tests.
   jest
     .mocked(fetchTagValues)
     .mockClear()
-    .mockResolvedValue(values.map((value) => ({ text: value, value })));
+    .mockImplementation(async (_timeRange, key) =>
+      (byKey[key as 'team'] ?? []).map((value) => ({ text: value, value }))
+    );
 }
 
 /** Mocks the alertmanager alerts endpoint; returns the `filter` query params of each request received. */
@@ -427,7 +433,7 @@ describe('AlertIncidentTabs', () => {
   });
 
   describe('team filter dropdown', () => {
-    it('fetches the alert team label values once across tab switches', async () => {
+    it('fetches each ownership label once across tab switches', async () => {
       mockTeamLabelValues(['Team A']);
       mockAlerts([makeAlert({ labels: { alertname: 'CPU Critical', severity: 'critical' } })]);
       mockIrmPlugin();
@@ -436,17 +442,20 @@ describe('AlertIncidentTabs', () => {
       const { user } = render(<AlertIncidentTabsWithData />);
 
       expect(await screen.findByText('CPU Critical')).toBeInTheDocument();
-      expect(await screen.findByRole('combobox', { name: /filter alerts by team/i })).toBeInTheDocument();
+      expect(await screen.findByRole('combobox', { name: /filter alerts by label/i })).toBeInTheDocument();
 
       await user.click(screen.getByRole('tab', { name: /incidents/i }));
       expect(await screen.findByText('Database outage')).toBeInTheDocument();
-      expect(screen.queryByRole('combobox', { name: /filter alerts by team/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('combobox', { name: /filter alerts by label/i })).not.toBeInTheDocument();
 
       // The values live in the tabs component, so switching back doesn't refetch them.
       await user.click(screen.getByRole('tab', { name: /firing alerts/i }));
 
-      expect(await screen.findByRole('combobox', { name: /filter alerts by team/i })).toBeInTheDocument();
-      expect(fetchTagValues).toHaveBeenCalledTimes(1);
+      expect(await screen.findByRole('combobox', { name: /filter alerts by label/i })).toBeInTheDocument();
+      expect(fetchTagValues).toHaveBeenCalledTimes(3);
+      expect(fetchTagValues).toHaveBeenCalledWith(expect.anything(), 'team');
+      expect(fetchTagValues).toHaveBeenCalledWith(expect.anything(), 'squad');
+      expect(fetchTagValues).toHaveBeenCalledWith(expect.anything(), 'owner');
     });
 
     it('puts each tab team filter inside the panel named after that tab', async () => {
@@ -461,7 +470,7 @@ describe('AlertIncidentTabs', () => {
       // The panel takes its name from the active tab, so the filter it contains
       // can only be read as scoped to that tab.
       const alertsPanel = await screen.findByRole('tabpanel', { name: /firing alerts/i });
-      expect(await within(alertsPanel).findByRole('combobox', { name: /filter alerts by team/i })).toBeInTheDocument();
+      expect(await within(alertsPanel).findByRole('combobox', { name: /filter alerts by label/i })).toBeInTheDocument();
 
       await user.click(screen.getByRole('tab', { name: /incidents/i }));
 
@@ -487,7 +496,7 @@ describe('AlertIncidentTabs', () => {
         `team=~"(?i)${wireTolerantPattern('Team', 'A')}|${wireTolerantPattern('Team', 'B')}"`,
       ]);
 
-      await user.click(await screen.findByRole('combobox', { name: /filter alerts by team/i }));
+      await user.click(await screen.findByRole('combobox', { name: /filter alerts by label/i }));
       // This user belongs to teams, so the default option describes that scope and
       // an explicit "All teams" escape hatch follows it, ahead of the teams.
       const options = await screen.findAllByRole('option');
@@ -518,7 +527,7 @@ describe('AlertIncidentTabs', () => {
       const { user } = render(<AlertIncidentTabsWithData />);
 
       expect(await screen.findByText('CPU Critical')).toBeInTheDocument();
-      const combobox = await screen.findByRole('combobox', { name: /filter alerts by team/i });
+      const combobox = await screen.findByRole('combobox', { name: /filter alerts by label/i });
 
       await user.click(combobox);
       await user.click(await screen.findByRole('option', { name: 'Team C' }));
@@ -557,7 +566,7 @@ describe('AlertIncidentTabs', () => {
       const { user } = render(<AlertIncidentTabsWithData />);
 
       expect(await screen.findByText('CPU Critical')).toBeInTheDocument();
-      const combobox = await screen.findByRole('combobox', { name: /filter alerts by team/i });
+      const combobox = await screen.findByRole('combobox', { name: /filter alerts by label/i });
 
       await user.click(combobox);
       await user.click(await screen.findByRole('option', { name: 'All teams' }));
@@ -592,7 +601,7 @@ describe('AlertIncidentTabs', () => {
       const { user } = render(<AlertIncidentTabsWithData />);
 
       expect(await screen.findByText('CPU Critical')).toBeInTheDocument();
-      await user.click(await screen.findByRole('combobox', { name: /filter alerts by team/i }));
+      await user.click(await screen.findByRole('combobox', { name: /filter alerts by label/i }));
       await user.click(await screen.findByRole('option', { name: 'All teams' }));
 
       // The sentinel never leaks into copy; the generic empty message is used.
@@ -611,7 +620,7 @@ describe('AlertIncidentTabs', () => {
 
       expect(await screen.findByText('CPU Critical')).toBeInTheDocument();
       expect(requests[0]).toEqual([ownTeamsFilter]);
-      const combobox = await screen.findByRole('combobox', { name: /filter alerts by team/i });
+      const combobox = await screen.findByRole('combobox', { name: /filter alerts by label/i });
 
       await user.click(combobox);
       await user.click(await screen.findByRole('option', { name: 'All teams' }));
@@ -654,7 +663,7 @@ describe('AlertIncidentTabs', () => {
       expect(await screen.findByText('CPU Critical')).toBeInTheDocument();
       expect(screen.queryByTestId('summary-card-skeleton')).not.toBeInTheDocument();
 
-      await user.click(await screen.findByRole('combobox', { name: /filter alerts by team/i }));
+      await user.click(await screen.findByRole('combobox', { name: /filter alerts by label/i }));
       await user.click(await screen.findByRole('option', { name: 'Team C' }));
 
       // While the filtered request is pending, the skeleton replaces the stale rows.
@@ -675,7 +684,7 @@ describe('AlertIncidentTabs', () => {
       const { user } = render(<AlertIncidentTabsWithData />);
 
       expect(await screen.findByText('CPU Critical')).toBeInTheDocument();
-      const combobox = await screen.findByRole('combobox', { name: /filter alerts by team/i });
+      const combobox = await screen.findByRole('combobox', { name: /filter alerts by label/i });
 
       await user.click(combobox);
       await user.click(await screen.findByRole('option', { name: 'Team C' }));
@@ -706,7 +715,7 @@ describe('AlertIncidentTabs', () => {
       const { user } = render(<AlertIncidentTabsWithData />);
 
       expect(await screen.findByText('CPU Critical')).toBeInTheDocument();
-      await user.click(await screen.findByRole('combobox', { name: /filter alerts by team/i }));
+      await user.click(await screen.findByRole('combobox', { name: /filter alerts by label/i }));
       await user.click(await screen.findByRole('option', { name: 'Team C' }));
 
       // The empty copy names the selected team instead of claiming "your teams".
@@ -721,7 +730,7 @@ describe('AlertIncidentTabs', () => {
       const { user } = render(<AlertIncidentTabsWithData />);
 
       expect(await screen.findByText('CPU Critical')).toBeInTheDocument();
-      const combobox = await screen.findByRole('combobox', { name: /filter alerts by team/i });
+      const combobox = await screen.findByRole('combobox', { name: /filter alerts by label/i });
       await user.click(combobox);
 
       // Default list: the default-scope option plus every fetched value. This user
@@ -752,7 +761,7 @@ describe('AlertIncidentTabs', () => {
       render(<AlertIncidentTabsWithData />);
 
       expect(await screen.findByText('CPU Critical')).toBeInTheDocument();
-      expect(screen.queryByRole('combobox', { name: /filter alerts by team/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('combobox', { name: /filter alerts by label/i })).not.toBeInTheDocument();
     });
 
     it('sends a slug-style label value as-is and names it in the empty message', async () => {
@@ -762,12 +771,34 @@ describe('AlertIncidentTabs', () => {
 
       const { user } = render(<AlertIncidentTabsWithData />);
 
-      await user.click(await screen.findByRole('combobox', { name: /filter alerts by team/i }));
+      await user.click(await screen.findByRole('combobox', { name: /filter alerts by label/i }));
       await user.click(await screen.findByRole('option', { name: 'platform-monitoring' }));
 
       // The selected value is a real label value, so the matcher carries it verbatim.
       await waitFor(() => expect(requests).toContainEqual(['team=~"platform-monitoring"']));
       expect(await screen.findByText('No firing alerts for platform-monitoring.')).toBeInTheDocument();
+    });
+
+    it('groups squad and team values and filters by the picked squad', async () => {
+      mockTeamLabelValues({ team: ['Platform'], squad: ['Frontend'] });
+      const requests = mockAlerts([]);
+
+      const { user } = render(<AlertIncidentTabsWithData />);
+
+      const combobox = await screen.findByRole('combobox', { name: /filter alerts by label/i });
+      await user.click(combobox);
+      expect(await screen.findByRole('option', { name: 'Frontend' })).toBeInTheDocument();
+
+      // Two ownership keys, so each value sits under a header. A lone key would not.
+      expect(screen.getAllByTestId('combobox-option-group').map((header) => header.textContent)).toEqual([
+        'Squad',
+        'Team',
+      ]);
+      await user.click(screen.getByRole('option', { name: 'Frontend' }));
+
+      await waitFor(() => expect(requests).toContainEqual(['squad=~"Frontend"']));
+      expect(await screen.findByText('No firing alerts for Frontend.')).toBeInTheDocument();
+      expect(combobox).toHaveDisplayValue('Frontend');
     });
   });
 
@@ -888,7 +919,7 @@ describe('AlertIncidentTabs', () => {
       const { user } = render(<AlertIncidentTabsWithData />);
 
       expect(await screen.findByText('CPU Critical')).toBeInTheDocument();
-      await user.click(await screen.findByRole('combobox', { name: /filter alerts by team/i }));
+      await user.click(await screen.findByRole('combobox', { name: /filter alerts by label/i }));
       await user.click(await screen.findByRole('option', { name: 'Team C' }));
       await waitFor(() => expect(alertRequests).toHaveLength(2));
       expect(alertRequests[1]).toEqual(['team=~"Team C"']);
@@ -907,7 +938,7 @@ describe('AlertIncidentTabs', () => {
       await user.click(screen.getByRole('tab', { name: /firing alerts/i }));
 
       // And the incidents pick doesn't disturb the alerts scope.
-      expect(await screen.findByRole('combobox', { name: /filter alerts by team/i })).toHaveDisplayValue('Team C');
+      expect(await screen.findByRole('combobox', { name: /filter alerts by label/i })).toHaveDisplayValue('Team C');
       expect(alertRequests).toHaveLength(2);
     });
 

@@ -176,5 +176,15 @@ describe('useFiringAlerts', () => {
       // escapeRegExp adds '\\.', quoteWithEscape doubles the backslash on the wire.
       expect(requests).toEqual([['team=~"team\\\\.one"']]);
     });
+
+    it('matches an explicitly selected squad label on that key', async () => {
+      mockTeams([{ name: 'Platform Monitoring' }]);
+      const requests = captureAlertFilters();
+
+      const { result } = renderHook(() => useFiringAlerts('squad:Frontend'), { wrapper: getWrapper({}) });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      expect(requests).toEqual([['squad=~"Frontend"']]);
+    });
   });
 });

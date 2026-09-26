@@ -16,18 +16,19 @@ import { type Team } from 'app/types/teams';
 
 import { HOME_CARD_MAX_ITEMS } from './constants';
 import { severityLevelRank } from './severity';
-import { type TeamSelection, resolveTeamScope } from './teamFilter';
+import { type TeamSelection, decodeAlertLabel, resolveTeamScope } from './teamFilter';
 
 /** Canonical severity level for an alert, tolerant of a missing severity label so the card never crashes. */
 function alertSeverityLevel(alert: AlertmanagerAlert) {
   return canonicalSeverity(alert.labels.severity ?? '');
 }
 
-function buildTeamMatchers(teamValues: string[]) {
-  if (teamValues.length === 0) {
+function buildExactLabelMatcher(name: string, value: string) {
+  if (!value) {
     return [];
   }
-  return [{ name: 'team', value: teamValues.map(escapeRegExp).join('|'), isRegex: true, isEqual: true }];
+  // Alertmanager anchors regex matchers, so an escaped value is an exact match.
+  return [{ name, value: escapeRegExp(value), isRegex: true, isEqual: true }];
 }
 
 // Any run of separator characters between or around the name's letter/digit runs.
@@ -58,18 +59,21 @@ function buildTolerantTeamMatchers(teamNames: string[]) {
 }
 
 /**
- * Which team matchers to send for the current dropdown selection:
- * an explicit "All teams" pick means no filter at all, a specific team wins next,
- * and with no selection we fall back to the user's own teams when they have any.
+ * Which label matchers to send for the current dropdown selection:
+ * an explicit "All teams" pick means no filter at all, a specific ownership label
+ * wins next, and with no selection we fall back to the user's own teams when they
+ * have any. The default stays on `team` only: Alertmanager ANDs matchers, so it
+ * cannot OR a team name across `team`, `squad`, and `owner` in one request.
  */
 function resolveTeamMatchers(selectedTeam: TeamSelection, userTeamNames: string[]) {
   const scope = resolveTeamScope(selectedTeam);
   switch (scope.kind) {
     case 'all':
       return [];
-    case 'team':
-      // Dropdown selections are real `team` label values, so they're matched exactly.
-      return buildTeamMatchers([scope.team]);
+    case 'team': {
+      const label = decodeAlertLabel(scope.team);
+      return label ? buildExactLabelMatcher(label.key, label.value) : [];
+    }
     case 'default':
       // The `team` alert label is free-form — typically some slugged or re-cased variant
       // of the Grafana team name — so the own-teams default matches tolerantly.
