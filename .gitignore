@@ -74,7 +74,10 @@ public/css/*.min.css
 .vscode/
 !.vscode/launch.json
 .vs/
-.cursor/
+.cursor/*
+!.cursor/rules/
+.cursor/rules/*
+!.cursor/rules/pr-tests-must-pass.mdc
 .devcontainer/
 .agents/
 .claude/*
