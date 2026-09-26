@@ -3,6 +3,7 @@ import { getDataSourceSrv } from '@grafana/runtime';
 import { AdHocFiltersVariable, EmbeddedScene, SceneTimeRange, SceneVariableSet } from '@grafana/scenes';
 
 import {
+  fetchTagKeys,
   fetchTagValues,
   getAdHocTagKeysProvider,
   getAdHocTagValuesProvider,
@@ -125,6 +126,19 @@ describe('tagKeysProviders', () => {
       expect(result.values).not.toEqual(
         expect.arrayContaining([{ text: 'namespace_extracted', value: 'namespace_extracted', group: 'All' }])
       );
+    });
+  });
+
+  describe('fetchTagKeys', () => {
+    it('queries the datasource getTagKeys with no filters', async () => {
+      const getTagKeys = jest.fn().mockResolvedValue([{ text: 'team', value: 'team' }] satisfies MetricFindValue[]);
+      mockGetDataSourceSrv({ getTagKeys });
+
+      const timeRange = getDefaultTimeRange();
+      const result = await fetchTagKeys(timeRange);
+
+      expect(result).toEqual([{ text: 'team', value: 'team' }]);
+      expect(getTagKeys).toHaveBeenCalledWith(expect.objectContaining({ filters: [], timeRange }));
     });
   });
 

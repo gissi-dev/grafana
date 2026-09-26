@@ -141,8 +141,7 @@ describe('HomePage', () => {
     render(<HomePage />);
 
     await waitFor(() => expect(filters.length).toBeGreaterThan(0));
-    expect(filters[0]).toEqual([expect.stringContaining('team=~')]);
-    expect(filters[0][0]).toContain('platform');
+    expect(filters[0]).toEqual(['team="platform"']);
   });
 
   it('scopes active incidents to their own stored filter, not the alerts team', async () => {

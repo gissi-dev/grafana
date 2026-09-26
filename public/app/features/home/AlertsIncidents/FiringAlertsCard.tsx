@@ -44,8 +44,8 @@ function severityLabel(level?: SeverityLevel): string {
 }
 
 /**
- * Empty-state copy scoped to the active team filter. An explicit team selection
- * overrides the "your teams" default filter, so the copy names that team instead
+ * Empty-state copy scoped to the active label filter. An explicit label selection
+ * overrides the "your teams" default filter, so the copy names that value instead
  * of claiming it's the user's own.
  */
 function emptyMessage(selectedTeam: TeamSelection, hasTeams: boolean): string {
@@ -53,9 +53,9 @@ function emptyMessage(selectedTeam: TeamSelection, hasTeams: boolean): string {
   switch (scope.kind) {
     case 'all':
       return t('home.firing-alerts-card.empty', 'You have no firing alerts.');
-    case 'team':
+    case 'label':
       return t('home.firing-alerts-card.empty-selected-team', 'No firing alerts for {{team}}.', {
-        team: scope.team,
+        team: scope.value,
         interpolation: { escapeValue: false },
       });
     case 'default':

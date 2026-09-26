@@ -41,7 +41,7 @@ const metricQuery: PromQuery = { refId: 'keys', expr: METRIC_NAME };
  * Fetch tag keys from the configured Prometheus datasource,
  * scoped to the GRAFANA_ALERTS metric.
  */
-async function fetchTagKeys(timeRange: TimeRange): Promise<MetricFindValue[]> {
+export async function fetchTagKeys(timeRange: TimeRange): Promise<MetricFindValue[]> {
   const ds = await getDataSourceSrv().get({ uid: DATASOURCE_UID });
 
   if (!ds.getTagKeys) {
