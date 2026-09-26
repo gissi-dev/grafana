@@ -74,13 +74,14 @@ public/css/*.min.css
 .vscode/
 !.vscode/launch.json
 .vs/
-# Ignore Cursor metadata, but keep the shared cloud-agent video-demo rule.
+# Ignore Cursor metadata, but keep shared rules.
 # Re-including a path under an ignored directory requires un-ignoring each
 # parent dir first (git will not descend into an excluded dir).
 .cursor/*
 !.cursor/rules/
 .cursor/rules/*
 !.cursor/rules/cloud-agent-pr-video.mdc
+!.cursor/rules/pr-tests-must-pass.mdc
 .devcontainer/
 .agents/
 .claude/*

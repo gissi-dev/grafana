@@ -1,0 +1,20 @@
+---
+description: Confirm tests pass before opening a pull request
+alwaysApply: true
+---
+
+# Tests must pass before a pull request
+
+Before `git push` or `gh pr create`, run the tests that cover every area this branch changes. Open the pull request only after those runs exit 0.
+
+If any test fails, fix it and rerun until the same commands pass. Do not open the pull request with a failing or skipped required run.
+
+## What to run
+
+- Frontend changes (`public/`, `packages/`, `*.ts`, `*.tsx`): `yarn jest --watchAll=false` for the affected paths. Do not use `yarn test`; that script starts Jest in watch mode and does not exit.
+- Backend changes (`pkg/`, `apps/`, `*.go`): `go test` for each affected package. Use `make test-go-unit` when the change spans many packages.
+- Both frontend and backend: run both suites. A green run on one side does not cover the other.
+
+## Before opening the pull request
+
+State the exact commands you ran and that they passed. If you could not run a required suite, say so and do not open the pull request.
