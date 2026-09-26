@@ -1,0 +1,21 @@
+---
+description: Cloud agent pull requests include a video demo in the description
+alwaysApply: true
+---
+
+# Cloud agent PR video demos
+
+When you are a cloud agent and the task produces a pull request, the pull request description must include a video demo of the change.
+
+1. Record a short demo of the change working. For a UI change, drive the app and show the affected flow. For a change with no UI, record the verification you actually ran.
+2. Save the recording at `/opt/cursor/artifacts/` with a descriptive name, for example `/opt/cursor/artifacts/demo.mp4`.
+3. Put the video in the pull request description, near the top:
+
+```html
+## Demo
+
+<video src="/opt/cursor/artifacts/demo.mp4" controls></video>
+```
+
+4. Write that description through the cloud-agent pull request path so `/opt/cursor/artifacts/` paths are rewritten into playable URLs. A pull request comment or `gh pr edit` does not embed the video.
+5. A pull request description without the demo video is incomplete. If you cannot record one, say why in the Demo section.
