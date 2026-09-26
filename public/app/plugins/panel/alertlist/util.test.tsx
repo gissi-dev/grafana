@@ -5,7 +5,7 @@ import { SupportedPlugin } from 'app/features/alerting/unified/types/pluginBridg
 import { type Alert } from 'app/types/unified-alerting';
 import { GrafanaAlertState } from 'app/types/unified-alerting-dto';
 
-import { GroupMode, SortOrder, STAT_THRESHOLDS_DEFAULT, type UnifiedAlertListOptions, ViewMode } from './types';
+import { GroupMode, CustomGroupLayout, SortOrder, STAT_THRESHOLDS_DEFAULT, type UnifiedAlertListOptions, ViewMode } from './types';
 import { buildAlertingListUrl, filterAlerts, getStatDisplayValue } from './util';
 
 const defaultOption: UnifiedAlertListOptions = {
@@ -14,8 +14,10 @@ const defaultOption: UnifiedAlertListOptions = {
   dashboardAlerts: true,
   groupMode: GroupMode.Default,
   groupBy: [''],
+  customGroupLayout: CustomGroupLayout.ByRule,
   alertName: 'test',
   showInstances: false,
+  priorityLabels: [],
   folder: { uid: 'abc', title: 'test folder' },
   stateFilter: { firing: true, pending: true, noData: true, normal: true, error: true, recovering: false },
   alertInstanceLabelFilter: '',

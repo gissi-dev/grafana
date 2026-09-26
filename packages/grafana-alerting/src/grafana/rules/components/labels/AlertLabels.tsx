@@ -17,6 +17,12 @@ export interface AlertLabelsProps {
   size?: LabelSize;
   onClick?: ([value, key]: [string | undefined, string | undefined]) => void;
   commonLabelsMode?: 'expand' | 'tooltip';
+  /**
+   * Label keys to show first. When set, those keys are never folded into the common-label
+   * bucket, and any remaining non-priority labels collapse behind "+ N other labels".
+   * Empty / undefined keeps the default label display.
+   */
+  priorityKeys?: string[];
 }
 
 export const AlertLabels = ({
@@ -26,23 +32,63 @@ export const AlertLabels = ({
   size,
   onClick,
   commonLabelsMode = 'expand',
+  priorityKeys,
 }: AlertLabelsProps) => {
   const styles = useStyles2(getStyles, size);
   const [showCommonLabels, setShowCommonLabels] = useState(false);
+  const [showOtherLabels, setShowOtherLabels] = useState(false);
 
-  const computedCommonLabels = useMemo(
-    () => (displayCommonLabels && Array.isArray(labelSets) && labelSets.length > 1 ? findCommonLabels(labelSets) : {}),
-    [displayCommonLabels, labelSets]
-  );
+  const priorityKeySet = useMemo(() => new Set(priorityKeys?.filter(Boolean) ?? []), [priorityKeys]);
+  const hasPriorityKeys = priorityKeySet.size > 0;
 
-  const labelsToShow = chain(labels)
-    .toPairs()
-    .reject(isPrivateLabel)
-    .reject(([key]) => (showCommonLabels ? false : key in computedCommonLabels))
-    .value();
+  const computedCommonLabels = useMemo(() => {
+    if (!displayCommonLabels || !Array.isArray(labelSets) || labelSets.length <= 1) {
+      return {};
+    }
+    const common = findCommonLabels(labelSets);
+    if (!hasPriorityKeys) {
+      return common;
+    }
+    // Priority keys stay visible even when they are common across the set.
+    return Object.fromEntries(Object.entries(common).filter(([key]) => !priorityKeySet.has(key)));
+  }, [displayCommonLabels, labelSets, hasPriorityKeys, priorityKeySet]);
+
+  const { priorityPairs, otherPairs, labelsToShow } = useMemo(() => {
+    const nonPrivate = chain(labels).toPairs().reject(isPrivateLabel).value();
+
+    if (!hasPriorityKeys) {
+      const visible = nonPrivate.filter(([key]) => (showCommonLabels ? true : !(key in computedCommonLabels)));
+      return { priorityPairs: [] as Array<[string, string]>, otherPairs: [] as Array<[string, string]>, labelsToShow: visible };
+    }
+
+    const priorityOrder = priorityKeys ?? [];
+    const priorityPairs = priorityOrder
+      .map((key) => nonPrivate.find(([k]) => k === key))
+      .filter((pair): pair is [string, string] => pair != null);
+
+    const otherPairs = nonPrivate.filter(
+      ([key]) => !priorityKeySet.has(key) && (showCommonLabels ? true : !(key in computedCommonLabels))
+    );
+
+    return {
+      priorityPairs,
+      otherPairs,
+      labelsToShow: showOtherLabels ? [...priorityPairs, ...otherPairs] : priorityPairs,
+    };
+  }, [
+    labels,
+    hasPriorityKeys,
+    priorityKeys,
+    priorityKeySet,
+    showCommonLabels,
+    showOtherLabels,
+    computedCommonLabels,
+  ]);
 
   const commonLabelsCount = Object.keys(computedCommonLabels).length;
   const hasCommonLabels = commonLabelsCount > 0;
+  const otherLabelsCount = otherPairs.length;
+  const hasOtherLabels = hasPriorityKeys && otherLabelsCount > 0;
   const tooltip = t('alert-labels.button.show.tooltip', 'Show common labels');
 
   const commonLabelsTooltip = useMemo(
@@ -71,6 +117,36 @@ export const AlertLabels = ({
           />
         );
       })}
+
+      {hasOtherLabels && !showOtherLabels && (
+        <div role="listitem">
+          <Button
+            variant="secondary"
+            fill="text"
+            onClick={() => setShowOtherLabels(true)}
+            size="sm"
+            data-testid="other-labels-expand"
+          >
+            <Trans
+              i18nKey="alerting.alert-labels.other-labels-count"
+              count={otherLabelsCount}
+              tOptions={{
+                defaultValue_one: '+{{count}} other labels',
+                defaultValue_other: '+{{count}} other labels',
+              }}
+            >
+              +{'{{count}}'} other labels
+            </Trans>
+          </Button>
+        </div>
+      )}
+      {hasOtherLabels && showOtherLabels && (
+        <div role="listitem">
+          <Button variant="secondary" fill="text" onClick={() => setShowOtherLabels(false)} size="sm">
+            <Trans i18nKey="alert-labels.button.hide-other">Hide other labels</Trans>
+          </Button>
+        </div>
+      )}
 
       {!showCommonLabels && hasCommonLabels && (
         <div role="listitem">

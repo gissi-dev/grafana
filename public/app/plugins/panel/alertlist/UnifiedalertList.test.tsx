@@ -37,7 +37,7 @@ import { GRAFANA_RULES_SOURCE_NAME } from '../../../features/alerting/unified/ut
 import { AccessControlAction } from '../../../types/accessControl';
 
 import { UnifiedAlertListPanel } from './UnifiedAlertList';
-import { GroupMode, SortOrder, STAT_THRESHOLDS_DEFAULT, type UnifiedAlertListOptions, ViewMode } from './types';
+import { CustomGroupLayout, GroupMode, SortOrder, STAT_THRESHOLDS_DEFAULT, type UnifiedAlertListOptions, ViewMode } from './types';
 import * as utils from './util';
 
 const grafanaRuleMock = {
@@ -119,8 +119,10 @@ const defaultOptions: UnifiedAlertListOptions = {
   dashboardAlerts: true,
   groupMode: GroupMode.Default,
   groupBy: [''],
+  customGroupLayout: CustomGroupLayout.ByRule,
   alertName: 'test',
   showInstances: false,
+  priorityLabels: [],
   folder: { uid: 'abc', title: 'test folder' },
   stateFilter: { firing: true, pending: false, noData: false, normal: true, error: false, recovering: false },
   alertInstanceLabelFilter: '',

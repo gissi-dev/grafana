@@ -19,6 +19,8 @@ interface Props {
   pagination?: PaginationProps;
   footerRow?: React.ReactNode;
   showNotificationColumn?: boolean;
+  /** Label keys to pin first in each instance's label list. */
+  priorityKeys?: string[];
 }
 
 interface RuleAndAlert {
@@ -29,7 +31,14 @@ interface RuleAndAlert {
 type AlertTableColumnProps = DynamicTableColumnProps<RuleAndAlert>;
 type AlertTableItemProps = DynamicTableItemProps<RuleAndAlert>;
 
-export const AlertInstancesTable = ({ rule, instances, pagination, footerRow, showNotificationColumn }: Props) => {
+export const AlertInstancesTable = ({
+  rule,
+  instances,
+  pagination,
+  footerRow,
+  showNotificationColumn,
+  priorityKeys,
+}: Props) => {
   const items = useMemo(
     (): AlertTableItemProps[] =>
       instances.map((instance) => ({
@@ -59,7 +68,15 @@ export const AlertInstancesTable = ({ rule, instances, pagination, footerRow, sh
         data: {
           alert: { labels },
         },
-      }) => <AlertLabels labels={labels} labelSets={instances.map((i) => i.labels)} displayCommonLabels size="sm" />,
+      }) => (
+        <AlertLabels
+          labels={labels}
+          labelSets={instances.map((i) => i.labels)}
+          displayCommonLabels
+          size="sm"
+          priorityKeys={priorityKeys}
+        />
+      ),
     },
     {
       id: 'created',

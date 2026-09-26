@@ -22,10 +22,14 @@ interface Props {
   defaultValue: SelectableValue<string>;
   onChange: (keys: string[]) => void;
   dataSource?: string;
+  /** When set, the picker will not accept more than this many keys. */
+  maxItems?: number;
+  placeholder?: string;
+  'aria-label'?: string;
 }
 
 export const GroupBy = (props: Props) => {
-  const { onChange, id, defaultValue, dataSource } = props;
+  const { onChange, id, defaultValue, dataSource, maxItems, placeholder, 'aria-label': ariaLabel } = props;
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -66,11 +70,12 @@ export const GroupBy = (props: Props) => {
       id={id}
       isLoading={loading}
       defaultValue={defaultValue}
-      aria-label={t('alertlist.group-by.aria-label-group-by-label-keys', 'group by label keys')}
-      placeholder={t('alertlist.group-by.placeholder-group-by', 'Group by')}
+      aria-label={ariaLabel ?? t('alertlist.group-by.aria-label-group-by-label-keys', 'group by label keys')}
+      placeholder={placeholder ?? t('alertlist.group-by.placeholder-group-by', 'Group by')}
       prefix={<Icon name={'tag-alt'} />}
       onChange={(items) => {
-        onChange(items.map((item) => item.value ?? ''));
+        const keys = items.map((item) => item.value ?? '');
+        onChange(maxItems != null ? keys.slice(0, maxItems) : keys);
       }}
       options={labels.map<SelectableValue>((key) => ({
         label: key,
