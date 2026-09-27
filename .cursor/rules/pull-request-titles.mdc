@@ -1,0 +1,15 @@
+---
+description: Use Area: Summary for PR titles and commit subjects
+alwaysApply: true
+---
+
+# Pull request titles
+
+Title and commit subjects use `Area: Summary` per `contribute/create-pull-request.md`.
+
+- Area is UpperCamelCase (`Dashboard`, `Explore`, `Docs`, `Build`, `Plugins`).
+- Summary starts with a capital letter and stays short.
+- Bug fixes include `Fixes #<issue>` or `Closes #<issue>` in the description.
+- Prefer one related issue per pull request.
+
+Examples: `Explore: Add Live option for supported data sources`, `Docs: Change url to URL in all documentation files`.

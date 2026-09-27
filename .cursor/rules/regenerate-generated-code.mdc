@@ -1,0 +1,18 @@
+---
+description: Regenerate generated code instead of hand-editing it
+globs: pkg/server/wire.go,pkg/server/wire_gen.go,**/kinds/**/*.cue,pkg/services/featuremgmt/registry.go,pkg/services/featuremgmt/*_gen.go,public/app/types/featureToggles.gen.ts,**/openapi*.json,**/*_gen.go,**/*.gen.ts
+alwaysApply: false
+---
+
+# Regenerate generated code
+
+Do not hand-edit generated files.
+
+After changing the source of truth, run the matching generator:
+
+- Wire DI (`pkg/server/wire.go`): `make gen-go`
+- CUE kinds (`kinds/`, app kinds): `make gen-cue`
+- Feature toggles (`pkg/services/featuremgmt/registry.go`): `make gen-feature-toggles`
+- OpenAPI / Swagger specs: `make swagger-gen`
+
+Commit generated output with the source change. Prefer the skill `regenerate-code` when choosing which target to run.

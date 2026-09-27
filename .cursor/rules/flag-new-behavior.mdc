@@ -1,0 +1,16 @@
+---
+description: Gate new user-facing behavior behind a feature flag
+alwaysApply: true
+---
+
+# Flag new behavior
+
+New user-facing behavior is off by default behind a feature flag.
+
+1. Define the flag in `pkg/services/featuremgmt/registry.go`.
+2. Name it `grafana.<name>` (or the owning service prefix).
+3. Set stage and `Generate` targets (`Go`, `React` as needed).
+4. Run `make gen-feature-toggles`.
+5. Wire the generated Go or React client; do not hand-edit `*_gen` files.
+
+See `contribute/feature-toggles.md` and the skill `add-a-feature-flag`.
