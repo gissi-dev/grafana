@@ -165,6 +165,16 @@ describe('useFiringAlerts', () => {
       expect(requests).toEqual([[]]);
     });
 
+    it('matches an explicitly selected squad label on that label, not team', async () => {
+      mockTeams([{ name: 'Platform Monitoring' }]);
+      const requests = captureAlertFilters();
+
+      const { result } = renderHook(() => useFiringAlerts('squad:frontend'), { wrapper: getWrapper({}) });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      expect(requests).toEqual([['squad=~"frontend"']]);
+    });
+
     it('matches an explicitly selected team label value exactly, with regex escaping', async () => {
       mockTeams([{ name: 'Platform Monitoring' }]);
       const requests = captureAlertFilters();
