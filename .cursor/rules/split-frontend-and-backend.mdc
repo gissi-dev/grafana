@@ -1,0 +1,12 @@
+---
+description: Keep frontend and backend changes in separate PRs
+alwaysApply: true
+---
+
+# Split frontend and backend
+
+Frontend (`public/`, `packages/`) and backend (`pkg/`, `apps/`) ship on different cadences.
+
+- Put frontend and backend work in separate changes unless one side cannot work without the other in the same release.
+- If a paired change is required, say why in the pull request summary.
+- Prefer thin API contracts and feature flags over a mixed mega-PR.

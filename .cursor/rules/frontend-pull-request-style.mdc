@@ -1,0 +1,18 @@
+---
+description: Frontend PR style for TypeScript and React
+globs: public/**/*.{ts,tsx},packages/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Frontend pull request style
+
+When changing frontend TypeScript or React:
+
+- Do not add new snapshot tests.
+- Do not introduce `any` or `{}` without a clear reason.
+- Prefer React Testing Library over Enzyme; migrate Enzyme only when not a pure bugfix.
+- Do not call the backend directly from components — use actions, Redux, or RTK Query.
+- Prefer small components; split large ones when practical.
+- Follow Emotion and theme guidance in `contribute/style-guides/`.
+
+For how to write meaningful frontend tests, use the `frontend-testing-strategy` skill.

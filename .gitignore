@@ -74,7 +74,7 @@ public/css/*.min.css
 .vscode/
 !.vscode/launch.json
 .vs/
-# Ignore Cursor metadata, but keep shared cloud-agent PR rules.
+# Ignore Cursor metadata, but keep shared project rules and skills.
 # Re-including a path under an ignored directory requires un-ignoring each
 # parent dir first (git will not descend into an excluded dir).
 .cursor/*
@@ -82,6 +82,18 @@ public/css/*.min.css
 .cursor/rules/*
 !.cursor/rules/cloud-agent-pr-video.mdc
 !.cursor/rules/pr-tests-must-pass.mdc
+!.cursor/rules/split-frontend-and-backend.mdc
+!.cursor/rules/regenerate-generated-code.mdc
+!.cursor/rules/pull-request-titles.mdc
+!.cursor/rules/flag-new-behavior.mdc
+!.cursor/rules/frontend-pull-request-style.mdc
+!.cursor/skills/
+.cursor/skills/*
+!.cursor/skills/add-a-feature-flag/
+!.cursor/skills/regenerate-code/
+!.cursor/skills/write-a-backend-test/
+!.cursor/skills/open-a-pull-request/
+!.cursor/skills/add-a-migration/
 .devcontainer/
 .agents/
 .claude/*
