@@ -170,11 +170,41 @@ describe('useFiringAlerts', () => {
       const requests = captureAlertFilters();
 
       // Dropdown values are real label values; '.' must be escaped, not treated as a wildcard.
-      const { result } = renderHook(() => useFiringAlerts('team.one'), { wrapper: getWrapper({}) });
+      const { result } = renderHook(() => useFiringAlerts('team:team.one'), { wrapper: getWrapper({}) });
       await waitFor(() => expect(result.current.loading).toBe(false));
 
       // escapeRegExp adds '\\.', quoteWithEscape doubles the backslash on the wire.
       expect(requests).toEqual([['team=~"team\\\\.one"']]);
+    });
+
+    it('matches a legacy plain team name as an exact team label (pre-encoding localStorage)', async () => {
+      mockTeams([{ name: 'Platform Monitoring' }]);
+      const requests = captureAlertFilters();
+
+      const { result } = renderHook(() => useFiringAlerts('team.one'), { wrapper: getWrapper({}) });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      expect(requests).toEqual([['team=~"team\\\\.one"']]);
+    });
+
+    it('matches an explicitly selected squad label on the squad key', async () => {
+      mockTeams([{ name: 'Platform Monitoring' }]);
+      const requests = captureAlertFilters();
+
+      const { result } = renderHook(() => useFiringAlerts('squad:Frontend'), { wrapper: getWrapper({}) });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      expect(requests).toEqual([['squad=~"Frontend"']]);
+    });
+
+    it('matches an explicitly selected owner label on the owner key', async () => {
+      mockTeams([]);
+      const requests = captureAlertFilters();
+
+      const { result } = renderHook(() => useFiringAlerts('owner:alice'), { wrapper: getWrapper({}) });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      expect(requests).toEqual([['owner=~"alice"']]);
     });
   });
 });

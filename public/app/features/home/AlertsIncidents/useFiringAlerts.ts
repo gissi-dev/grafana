@@ -16,18 +16,18 @@ import { type Team } from 'app/types/teams';
 
 import { HOME_CARD_MAX_ITEMS } from './constants';
 import { severityLevelRank } from './severity';
-import { type TeamSelection, resolveTeamScope } from './teamFilter';
+import { type TeamSelection, decodeAlertFilter, resolveTeamScope } from './teamFilter';
 
 /** Canonical severity level for an alert, tolerant of a missing severity label so the card never crashes. */
 function alertSeverityLevel(alert: AlertmanagerAlert) {
   return canonicalSeverity(alert.labels.severity ?? '');
 }
 
-function buildTeamMatchers(teamValues: string[]) {
-  if (teamValues.length === 0) {
+function buildLabelMatchers(labelName: string, values: string[]) {
+  if (values.length === 0) {
     return [];
   }
-  return [{ name: 'team', value: teamValues.map(escapeRegExp).join('|'), isRegex: true, isEqual: true }];
+  return [{ name: labelName, value: values.map(escapeRegExp).join('|'), isRegex: true, isEqual: true }];
 }
 
 // Any run of separator characters between or around the name's letter/digit runs.
@@ -58,21 +58,24 @@ function buildTolerantTeamMatchers(teamNames: string[]) {
 }
 
 /**
- * Which team matchers to send for the current dropdown selection:
- * an explicit "All teams" pick means no filter at all, a specific team wins next,
- * and with no selection we fall back to the user's own teams when they have any.
+ * Which matchers to send for the current dropdown selection:
+ * an explicit "All teams" pick means no filter at all, a specific ownership label
+ * wins next, and with no selection we fall back to the user's own teams when they have any.
  */
 function resolveTeamMatchers(selectedTeam: TeamSelection, userTeamNames: string[]) {
   const scope = resolveTeamScope(selectedTeam);
   switch (scope.kind) {
     case 'all':
       return [];
-    case 'team':
-      // Dropdown selections are real `team` label values, so they're matched exactly.
-      return buildTeamMatchers([scope.team]);
+    case 'team': {
+      // Encoded `slug:value` (or a legacy plain team name) — match that label exactly.
+      const filter = decodeAlertFilter(scope.team);
+      return filter ? buildLabelMatchers(filter.slug, [filter.value]) : [];
+    }
     case 'default':
       // The `team` alert label is free-form — typically some slugged or re-cased variant
       // of the Grafana team name — so the own-teams default matches tolerantly.
+      // Squad/owner have no Grafana membership analogue, so the default stays on `team`.
       return buildTolerantTeamMatchers(userTeamNames);
   }
 }
@@ -86,8 +89,8 @@ export type FiringAlertsData = ReturnType<typeof useFiringAlerts>;
  * All data fetching and derived state for the homepage Firing alerts view,
  * shared between the old-layout card and the redesigned tabs.
  *
- * When `selectedTeam` is set (from the team dropdown) it overrides the default
- * filter of the user's own teams.
+ * When `selectedTeam` is set (from the ownership-label dropdown) it overrides the
+ * default filter of the user's own teams.
  */
 export function useFiringAlerts(selectedTeam: TeamSelection = '') {
   // The hook gates its own fetching so it's safe to call unconditionally,

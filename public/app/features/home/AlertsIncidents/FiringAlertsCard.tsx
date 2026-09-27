@@ -11,7 +11,7 @@ import { ctaClicked } from '../analytics/main';
 import { CreateAndViewAlertsButtons } from './CreateAndViewAlertsButtons';
 import { SummaryCard, SummaryCardAge, SummaryCardPrefix } from './SummaryCard';
 import { severityLevelColor } from './severity';
-import { type TeamSelection, resolveTeamScope } from './teamFilter';
+import { type TeamSelection, alertFilterLabel, resolveTeamScope } from './teamFilter';
 import { type FiringAlertsData } from './useFiringAlerts';
 
 /** Extract the path (with query string) from an absolute generatorURL, falling back to the raw value. */
@@ -44,8 +44,8 @@ function severityLabel(level?: SeverityLevel): string {
 }
 
 /**
- * Empty-state copy scoped to the active team filter. An explicit team selection
- * overrides the "your teams" default filter, so the copy names that team instead
+ * Empty-state copy scoped to the active ownership-label filter. An explicit pick
+ * overrides the "your teams" default filter, so the copy names that value instead
  * of claiming it's the user's own.
  */
 function emptyMessage(selectedTeam: TeamSelection, hasTeams: boolean): string {
@@ -55,7 +55,7 @@ function emptyMessage(selectedTeam: TeamSelection, hasTeams: boolean): string {
       return t('home.firing-alerts-card.empty', 'You have no firing alerts.');
     case 'team':
       return t('home.firing-alerts-card.empty-selected-team', 'No firing alerts for {{team}}.', {
-        team: scope.team,
+        team: alertFilterLabel(scope.team),
         interpolation: { escapeValue: false },
       });
     case 'default':
