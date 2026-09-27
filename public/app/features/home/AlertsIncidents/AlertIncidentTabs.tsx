@@ -14,7 +14,7 @@ import { FiringAlertsCard } from './FiringAlertsCard';
 import { IncidentsCard } from './IncidentsCard';
 import { TeamFilterCombobox } from './TeamFilterCombobox';
 import { type IncidentFilterSelection, incidentFilterLabel } from './incidentFilter';
-import { type TeamSelection } from './teamFilter';
+import { type TeamSelection, ownershipFilterLabel } from './teamFilter';
 import { useAlertTeamLabelValues } from './useAlertTeamLabelValues';
 import { type FiringAlertsData } from './useFiringAlerts';
 import { useIncidentFilterOptions } from './useIncidentFilterOptions';
@@ -100,8 +100,11 @@ export function AlertIncidentTabs({
         ? t('home.alerts-incidents.title-incidents', 'Incidents')
         : t('home.alerts-incidents.title-alerts', 'Alerts');
 
-  // Each tab keeps its own selection: alerts filter by the `team` label, incidents by any
+  // Each tab keeps its own selection: alerts filter by an ownership label, incidents by any
   // incident label, so a shared pick would often name a value the other tab can't hold.
+  // A single ownership key (usually just `team`) keeps the original team copy; several keys
+  // make the org-wide option describe every alert, not only teams.
+  const multipleOwnershipKeys = new Set(alertTeamOptions.map((option) => option.group).filter(Boolean)).size > 1;
   const tabs = [
     ...(canViewAlerts
       ? [
@@ -115,8 +118,13 @@ export function AlertIncidentTabs({
               selected: alertsTeam,
               onChange: onAlertsTeamChange,
               offersYourTeams: hasTeams,
-              allOptionLabel: t('home.alerts-incidents.team-filter-all', 'All teams'),
-              ariaLabel: t('home.alerts-incidents.team-filter-label', 'Filter alerts by team'),
+              allOptionLabel: multipleOwnershipKeys
+                ? t('home.alerts-incidents.alert-filter-all', 'All alerts')
+                : t('home.alerts-incidents.team-filter-all', 'All teams'),
+              selectionLabel: ownershipFilterLabel,
+              ariaLabel: multipleOwnershipKeys
+                ? t('home.alerts-incidents.alert-filter-label', 'Filter alerts by owner')
+                : t('home.alerts-incidents.team-filter-label', 'Filter alerts by team'),
             },
           },
         ]
