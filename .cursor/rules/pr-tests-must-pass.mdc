@@ -1,0 +1,19 @@
+---
+description: Confirm tests pass before opening a pull request
+alwaysApply: true
+---
+
+# Tests must pass before opening a pull request
+
+Before opening a pull request (or marking a draft PR ready for review), confirm that tests for the change pass.
+
+1. Identify the tests that cover the code you changed (and any closely related packages or components).
+2. Run those tests locally and wait for a clean exit. Do not open or update the PR as "ready" while tests are failing or still running.
+3. Prefer targeted commands for the changed area, for example:
+   - Frontend: `yarn jest --no-watch path/to/file` (or the feature/package under test)
+   - Backend: `go test -run TestName ./pkg/services/myservice/` (or the package under test)
+4. If you added or updated automated tests as part of the change, those new/updated tests must pass.
+5. If tests fail, fix the failures (or the tests, when they are wrong) and re-run until they pass. Do not open a PR that you know has failing tests.
+6. In the pull request description, briefly note which tests you ran and that they passed. If you could not run a relevant suite (missing deps, environment limits, or similar), say what you skipped and why — do not silently omit verification.
+
+This rule applies to cloud agents and any agent workflow that creates or updates pull requests.
