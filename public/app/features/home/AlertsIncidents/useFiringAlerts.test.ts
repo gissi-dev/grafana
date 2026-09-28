@@ -176,5 +176,25 @@ describe('useFiringAlerts', () => {
       // escapeRegExp adds '\\.', quoteWithEscape doubles the backslash on the wire.
       expect(requests).toEqual([['team=~"team\\\\.one"']]);
     });
+
+    it('matches an explicitly selected squad value on the squad label', async () => {
+      mockTeams([{ name: 'Platform Monitoring' }]);
+      const requests = captureAlertFilters();
+
+      const { result } = renderHook(() => useFiringAlerts('squad:frontend'), { wrapper: getWrapper({}) });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      expect(requests).toEqual([['squad=~"frontend"']]);
+    });
+
+    it('matches an explicitly selected owner value exactly, with regex escaping', async () => {
+      mockTeams([]);
+      const requests = captureAlertFilters();
+
+      const { result } = renderHook(() => useFiringAlerts('owner:alice.bob'), { wrapper: getWrapper({}) });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      expect(requests).toEqual([['owner=~"alice\\\\.bob"']]);
+    });
   });
 });

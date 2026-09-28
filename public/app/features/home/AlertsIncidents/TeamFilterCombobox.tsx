@@ -80,9 +80,11 @@ export function TeamFilterCombobox({
     switch (scope.kind) {
       case 'all':
         return allOption;
-      case 'team':
+      case 'label':
         // Built from the selection alone, so a pick whose option is gone (e.g. archived) still shows.
-        return { label: selectionLabel?.(scope.team) ?? scope.team, value: scope.team };
+        // `selected` is the stored encoding. Incidents share this combobox and store `slug:value`,
+        // which is not the same string as the decoded label value.
+        return { label: selectionLabel?.(selected) ?? scope.value, value: selected };
       case 'default':
         // Without a "your teams" scope the default already means everything, so show that.
         return offersYourTeams ? getYourTeamsOption() : allOption;

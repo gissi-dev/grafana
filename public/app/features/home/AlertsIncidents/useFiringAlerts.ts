@@ -16,18 +16,18 @@ import { type Team } from 'app/types/teams';
 
 import { HOME_CARD_MAX_ITEMS } from './constants';
 import { severityLevelRank } from './severity';
-import { type TeamSelection, resolveTeamScope } from './teamFilter';
+import { type OwnershipLabelKey, type TeamSelection, resolveTeamScope } from './teamFilter';
 
 /** Canonical severity level for an alert, tolerant of a missing severity label so the card never crashes. */
 function alertSeverityLevel(alert: AlertmanagerAlert) {
   return canonicalSeverity(alert.labels.severity ?? '');
 }
 
-function buildTeamMatchers(teamValues: string[]) {
-  if (teamValues.length === 0) {
+function buildExactMatchers(key: OwnershipLabelKey, labelValues: string[]) {
+  if (labelValues.length === 0) {
     return [];
   }
-  return [{ name: 'team', value: teamValues.map(escapeRegExp).join('|'), isRegex: true, isEqual: true }];
+  return [{ name: key, value: labelValues.map(escapeRegExp).join('|'), isRegex: true, isEqual: true }];
 }
 
 // Any run of separator characters between or around the name's letter/digit runs.
@@ -58,18 +58,19 @@ function buildTolerantTeamMatchers(teamNames: string[]) {
 }
 
 /**
- * Which team matchers to send for the current dropdown selection:
- * an explicit "All teams" pick means no filter at all, a specific team wins next,
+ * Which matchers to send for the current dropdown selection:
+ * an explicit org-wide pick means no filter at all, a specific ownership label wins next,
  * and with no selection we fall back to the user's own teams when they have any.
+ * The default only matches the `team` label: squad and owner are not Grafana team membership.
  */
 function resolveTeamMatchers(selectedTeam: TeamSelection, userTeamNames: string[]) {
   const scope = resolveTeamScope(selectedTeam);
   switch (scope.kind) {
     case 'all':
       return [];
-    case 'team':
-      // Dropdown selections are real `team` label values, so they're matched exactly.
-      return buildTeamMatchers([scope.team]);
+    case 'label':
+      // Dropdown selections are real label values, so they're matched exactly.
+      return buildExactMatchers(scope.key, [scope.value]);
     case 'default':
       // The `team` alert label is free-form — typically some slugged or re-cased variant
       // of the Grafana team name — so the own-teams default matches tolerantly.
