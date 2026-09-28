@@ -55,7 +55,7 @@ jest.mock('app/core/services/context_srv', () => ({
   },
 }));
 
-// The team dropdown loads its options from the `team` label values on alerts,
+// The alerts dropdown loads ownership label values (team, squad, owner)
 // via the triage fetchTagValues helper; mock it rather than the datasource layer.
 jest.mock('app/features/alerting/unified/triage/scene/tagKeysProviders', () => ({
   ...jest.requireActual('app/features/alerting/unified/triage/scene/tagKeysProviders'),
@@ -92,13 +92,22 @@ function mockTeams(teams: Array<{ name: string }>) {
   );
 }
 
-/** `team` label values the dropdown fetches from the state-history Prometheus datasource. */
-function mockTeamLabelValues(values: string[]) {
+/** Ownership label values the dropdown fetches from the state-history Prometheus datasource. */
+function mockOwnershipLabelValues(byKey: Partial<Record<'team' | 'squad' | 'owner', string[]>>) {
   // Cleared so per-test call-count assertions aren't polluted by earlier tests.
+  // Unset keys resolve empty so a team-only fixture does not also fill squad and owner.
   jest
     .mocked(fetchTagValues)
     .mockClear()
-    .mockResolvedValue(values.map((value) => ({ text: value, value })));
+    .mockImplementation(async (_range, key) => {
+      const values = byKey[key as 'team' | 'squad' | 'owner'] ?? [];
+      return values.map((value) => ({ text: value, value }));
+    });
+}
+
+/** `team` label values the dropdown fetches from the state-history Prometheus datasource. */
+function mockTeamLabelValues(values: string[]) {
+  mockOwnershipLabelValues({ team: values });
 }
 
 /** Mocks the alertmanager alerts endpoint; returns the `filter` query params of each request received. */
@@ -427,7 +436,7 @@ describe('AlertIncidentTabs', () => {
   });
 
   describe('team filter dropdown', () => {
-    it('fetches the alert team label values once across tab switches', async () => {
+    it('fetches each ownership label once across tab switches', async () => {
       mockTeamLabelValues(['Team A']);
       mockAlerts([makeAlert({ labels: { alertname: 'CPU Critical', severity: 'critical' } })]);
       mockIrmPlugin();
@@ -446,7 +455,7 @@ describe('AlertIncidentTabs', () => {
       await user.click(screen.getByRole('tab', { name: /firing alerts/i }));
 
       expect(await screen.findByRole('combobox', { name: /filter alerts by team/i })).toBeInTheDocument();
-      expect(fetchTagValues).toHaveBeenCalledTimes(1);
+      expect(jest.mocked(fetchTagValues).mock.calls.map((call) => call[1])).toEqual(['team', 'squad', 'owner']);
     });
 
     it('puts each tab team filter inside the panel named after that tab', async () => {
@@ -768,6 +777,29 @@ describe('AlertIncidentTabs', () => {
       // The selected value is a real label value, so the matcher carries it verbatim.
       await waitFor(() => expect(requests).toContainEqual(['team=~"platform-monitoring"']));
       expect(await screen.findByText('No firing alerts for platform-monitoring.')).toBeInTheDocument();
+    });
+
+    it('groups squad values with team and filters alerts by the picked squad', async () => {
+      mockOwnershipLabelValues({ team: ['Platform'], squad: ['Frontend'] });
+      const requests = mockAlerts([]);
+
+      const { user } = render(<AlertIncidentTabsWithData />);
+
+      const combobox = await screen.findByRole('combobox', { name: /filter alerts by owner/i });
+      expect(combobox).toHaveDisplayValue('All alerts');
+      await user.click(combobox);
+
+      const options = await screen.findAllByRole('option');
+      expect(options.map((option) => option.textContent)).toEqual(['All alerts', 'Frontend', 'Platform']);
+      expect(screen.getAllByTestId('combobox-option-group').map((header) => header.textContent)).toEqual([
+        'Squad',
+        'Team',
+      ]);
+      await user.click(screen.getByRole('option', { name: 'Frontend' }));
+
+      await waitFor(() => expect(requests).toContainEqual(['squad=~"Frontend"']));
+      expect(combobox).toHaveDisplayValue('Frontend');
+      expect(await screen.findByText('No firing alerts for Frontend.')).toBeInTheDocument();
     });
   });
 
